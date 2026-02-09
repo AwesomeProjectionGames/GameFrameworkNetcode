@@ -17,7 +17,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
             GameObject playerObject = Instantiate(playerPrefab);
             var networkObject = playerObject.GetComponent<NetworkObject>();
-            networkObject.SpawnAsPlayerObject(clientId, destroyWithScene);
+            networkObject?.SpawnAsPlayerObject(clientId, destroyWithScene);
             return playerObject;
         }
 
@@ -31,7 +31,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
             GameObject pawnObject = Instantiate(pawnPrefab);
             var networkObject = pawnObject.GetComponent<NetworkObject>();
-            networkObject.Spawn(destroyWithScene);
+            networkObject?.Spawn(destroyWithScene);
             return pawnObject;
         }
     }
