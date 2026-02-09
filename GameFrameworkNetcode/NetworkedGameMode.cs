@@ -10,7 +10,7 @@ using UnityEngine;
 namespace UnityGameFrameworkImplementations.Core.Netcode
 {
     [RequireComponent(typeof(NetworkedGameModeState))]
-    public class NetworkedGameMode : PawnSpawner, IGameMode
+    public class NetworkedGameMode : NetBehaviour, IGameMode
     {
         public IPawn DefaultPawnPrefab => defaultPawnPrefab.GetComponent<IPawn>();
         public IController DefaultControllerPrefab => defaultControllerPrefab.GetComponent<IController>();
@@ -77,13 +77,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             var controller = controllerGO?.GetComponent<IController>();
             if (controller == null) return;
 
-            var pawn = SpawnPawn(defaultPawnPrefab)?.GetComponent<IPawn>();
-            if (pawn == null) return;
+            //var pawn = Spawn(defaultPawnPrefab.GetComponent<IPawn>()) as IPawn;
+            //if (pawn == null) return;
 
-            pawn.Respawn();
+            //pawn.Respawn();
 
             //It will automatically transfer ownership to the client when the pawn will be owned by the controller
-            controller.PossessActor(pawn);
+            //controller.PossessActor(pawn);
 
             //Send other actor states
             foreach (var actor in CurrentGameState.Actors)
@@ -111,5 +111,65 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         {
             return spawnPoints;
         }
+
+        #region Spawning
+        public IActor? Spawn(IActor prefab, bool destroyWithScene = true)
+        {
+            GameObject? spawned = SpawnPawn(prefab.Transform.gameObject, destroyWithScene);
+            if (spawned == null) return null;
+            return spawned.GetComponent<IActor>();
+        }
+
+        public IActor? SpawnAtLocation(IActor prefab, Vector3 location, Quaternion rotation, bool destroyWithScene = true)
+        {
+            IActor? actor = Spawn(prefab, destroyWithScene);
+            if (actor == null) return null;
+            if (actor is IPawn pawn)
+            {
+                pawn.Teleport(location, rotation);
+            }
+            else
+            {
+                actor.Transform.position = location;
+                actor.Transform.rotation = rotation;
+            }
+            return actor;
+        }
+        
+        private GameObject? SpawnOwnedPawn(ulong clientId, GameObject playerPrefab, bool destroyWithScene = true)
+        {
+            var obj = InternalSpawn(playerPrefab, destroyWithScene, out var netObj);
+            netObj?.SpawnAsPlayerObject(clientId, destroyWithScene);
+            return obj;
+        }
+
+        private GameObject? SpawnPawn(GameObject pawnPrefab, bool destroyWithScene = true)
+        {
+            var obj = InternalSpawn(pawnPrefab, destroyWithScene, out var netObj);
+            netObj?.Spawn(destroyWithScene);
+            return obj;
+        }
+        
+        private GameObject? InternalSpawn(GameObject prefab, bool destroyWithScene, out NetworkObject? networkObject)
+        {
+            networkObject = null;
+
+            if (!IsServer)
+            {
+                Debug.LogError($"{nameof(InternalSpawn)} can only be called on the server.");
+                return null;
+            }
+
+            GameObject obj = Instantiate(prefab);
+            networkObject = obj.GetComponent<NetworkObject>();
+    
+            if (networkObject == null)
+            {
+                Debug.LogWarning($"Spawned {prefab.name} but no NetworkObject was found.");
+            }
+
+            return obj;
+        }
+        #endregion
     }
 }
