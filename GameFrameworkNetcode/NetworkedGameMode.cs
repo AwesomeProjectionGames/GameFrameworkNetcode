@@ -77,13 +77,16 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             var controller = controllerGO?.GetComponent<IController>();
             if (controller == null) return;
 
-            //var pawn = Spawn(defaultPawnPrefab.GetComponent<IPawn>()) as IPawn;
-            //if (pawn == null) return;
+            if (defaultPawnPrefab.IsAlive())
+            {
+                var pawn = Spawn(defaultPawnPrefab.GetComponent<IPawn>()) as IPawn;
+                if (pawn == null) return;
 
-            //pawn.Respawn();
+                pawn.Respawn();
 
-            //It will automatically transfer ownership to the client when the pawn will be owned by the controller
-            //controller.PossessActor(pawn);
+                //It will automatically transfer ownership to the client when the pawn will be owned by the controller
+                controller.PossessActor(pawn);
+            }
 
             //Send other actor states
             foreach (var actor in CurrentGameState.Actors)
