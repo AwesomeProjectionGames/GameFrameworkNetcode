@@ -73,7 +73,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         protected void HandleClientConnected(ulong clientId)
         {
             if (!IsServer) return;
-            var controllerGO = SpawnOwnedPawn(clientId, defaultControllerPrefab);
+            var controllerGO = SpawnOwnedPawn(clientId, defaultControllerPrefab, false);
             var controller = controllerGO?.GetComponent<IController>();
             if (controller == null) return;
 
