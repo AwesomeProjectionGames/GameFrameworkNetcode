@@ -1,4 +1,5 @@
-﻿using AwesomeProjectionCoreUtils.Extensions;
+﻿#nullable enable
+using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
 using Unity.Netcode;
 using UnityEngine;
@@ -10,8 +11,8 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         public abstract IMachine Machine { get; }
         public abstract string Name { get; }
         public IActor ControlledActor { get; set; }
-        public abstract ISpectateController SpectateController { get; }
-    
+        public ISpectateController? SpectateController { get; set; }
+        
         private NetworkVariable<NetworkObjectReference> _controlledActorReference = new NetworkVariable<NetworkObjectReference>(writePerm: NetworkVariableWritePermission.Server, readPerm: NetworkVariableReadPermission.Everyone);
         
         public override void OnNetworkSpawn()
@@ -35,7 +36,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 return;
             }
             if (!actor.IsAlive())
-            { 
+            {
                 Debug.LogError("Cannot possess a null or dead actor.");
                 return;
             }

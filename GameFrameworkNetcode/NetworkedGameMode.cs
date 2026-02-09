@@ -16,8 +16,9 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         public IController DefaultControllerPrefab => defaultControllerPrefab.GetComponent<IController>();
         public IGameState CurrentGameState => _networkedGameModeState;
 
-        [SerializeField] GameObject defaultPawnPrefab = null!;
+        [SerializeField] private GameObject? defaultPawnPrefab;
         [SerializeField] GameObject defaultControllerPrefab = null!;
+        [SerializeField] private GameObject? spectateControllerPrefab;
         [SerializeField] private BaseSpawnPoint spawnPoints;
 
         private NetworkedGameModeState _networkedGameModeState;
@@ -34,12 +35,12 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             NetworkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
         }
 
-        private void Awake()
+        protected virtual void Awake()
         {
             _networkedGameModeState = GetComponent<NetworkedGameModeState>();
         }
 
-        private void OnEnable()
+        protected virtual void OnEnable()
         {
             if (GameInstance.Instance == null)
             {
@@ -62,7 +63,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
         }
 
-        private void OnDisable()
+        protected virtual void OnDisable()
         {
             if (ReferenceEquals(GameInstance.Instance?.CurrentGameMode, this))
             {
@@ -70,22 +71,33 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
         }
 
-        protected void HandleClientConnected(ulong clientId)
+        protected virtual void HandleClientConnected(ulong clientId)
         {
             if (!IsServer) return;
+            SpawnPlayer(clientId);
+        }
+
+        protected virtual IController? SpawnPlayer(ulong clientId, bool spawnSpectator = true)
+        {
             var controllerGO = SpawnOwnedPawn(clientId, defaultControllerPrefab, false);
             var controller = controllerGO?.GetComponent<IController>();
-            if (controller == null) return;
+            if (controller == null) return null;
+
+            if (spawnSpectator && spectateControllerPrefab.IsAlive())
+            {
+                var spectateGo = Instantiate(spectateControllerPrefab);
+                var spectateController = spectateGo?.GetComponent<ISpectateController>();
+                controller.SpectateController = spectateController;
+            }
 
             if (defaultPawnPrefab.IsAlive())
             {
                 var pawn = Spawn(defaultPawnPrefab.GetComponent<IPawn>()) as IPawn;
-                if (pawn == null) return;
-
-                pawn.Respawn();
-
-                //It will automatically transfer ownership to the client when the pawn will be owned by the controller
-                controller.PossessActor(pawn);
+                if (pawn.IsAlive())
+                {
+                    pawn!.Respawn();
+                    controller.PossessActor(pawn);
+                }
             }
 
             //Send other actor states
@@ -96,6 +108,8 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     serializable.SendStateToClient(clientId);
                 }
             }
+
+            return controller;
         }
 
         protected void HandleClientDisconnected(ulong clientId)
@@ -138,7 +152,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
             return actor;
         }
-        
+
         private GameObject? SpawnOwnedPawn(ulong clientId, GameObject playerPrefab, bool destroyWithScene = true)
         {
             var obj = InternalSpawn(playerPrefab, destroyWithScene, out var netObj);
@@ -152,7 +166,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             netObj?.Spawn(destroyWithScene);
             return obj;
         }
-        
+
         private GameObject? InternalSpawn(GameObject prefab, bool destroyWithScene, out NetworkObject? networkObject)
         {
             networkObject = null;
@@ -165,7 +179,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
             GameObject obj = Instantiate(prefab);
             networkObject = obj.GetComponent<NetworkObject>();
-    
+
             if (networkObject == null)
             {
                 Debug.LogWarning($"Spawned {prefab.name} but no NetworkObject was found.");
