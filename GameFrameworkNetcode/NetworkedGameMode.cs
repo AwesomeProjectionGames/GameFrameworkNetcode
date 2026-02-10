@@ -18,7 +18,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
         [SerializeField] private GameObject? defaultPawnPrefab;
         [SerializeField] GameObject defaultControllerPrefab = null!;
-        [SerializeField] private GameObject? spectateControllerPrefab;
         [SerializeField] private BaseSpawnPoint spawnPoints;
 
         private NetworkedGameModeState _networkedGameModeState;
@@ -75,20 +74,19 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         {
             if (!IsServer) return;
             SpawnPlayer(clientId);
+            SendActorStatesToNewClient(clientId);
         }
 
-        protected virtual IController? SpawnPlayer(ulong clientId, bool spawnSpectator = true)
+        
+        /// <summary>
+        /// Spawn a full player, inclusing Controller and optionnally spectate controller, and possess a pawn if a default pawn prefab is set.
+        /// </summary>
+        /// <param name="clientId"></param>
+        protected IController? SpawnPlayer(ulong clientId)
         {
             var controllerGO = SpawnOwnedPawn(clientId, defaultControllerPrefab, false);
             var controller = controllerGO?.GetComponent<IController>();
             if (controller == null) return null;
-
-            if (spawnSpectator && spectateControllerPrefab.IsAlive())
-            {
-                var spectateGo = Instantiate(spectateControllerPrefab);
-                var spectateController = spectateGo?.GetComponent<ISpectateController>();
-                controller.SpectateController = spectateController;
-            }
 
             if (defaultPawnPrefab.IsAlive())
             {
@@ -99,7 +97,11 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     controller.PossessActor(pawn);
                 }
             }
+            return controller;
+        }
 
+        protected void SendActorStatesToNewClient(ulong clientId)
+        {
             //Send other actor states
             foreach (var actor in CurrentGameState.Actors)
             {
@@ -108,8 +110,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     serializable.SendStateToClient(clientId);
                 }
             }
-
-            return controller;
         }
 
         protected void HandleClientDisconnected(ulong clientId)
