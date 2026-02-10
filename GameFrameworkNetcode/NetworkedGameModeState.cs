@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using GameFramework;
+using GameFramework.Events;
 using GameFramework.Identification;
 using Unity.Netcode;
 
@@ -40,6 +41,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 {
                     _actors = newActors;
                     OnActorsChanged?.Invoke();
+                    GameInstance.Instance!.EventBus.Publish(new OnActorsListChanges());
                     
                     // Update Controllers and Pawns based on the new actors
                     HashSet<IController> newControllers = new HashSet<IController>();
@@ -54,6 +56,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     {
                         _controllers = newControllers;
                         OnControllersChanged?.Invoke();
+                        GameInstance.Instance!.EventBus.Publish(new OnControllersListChanges());
                     }
                 }
             }
