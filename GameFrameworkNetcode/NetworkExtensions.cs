@@ -31,7 +31,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 Debug.LogError("NetworkObject does not have a valid IPawn component or the pawn is not alive.");
                 return null;
             }
-            Debug.LogError("Invalid NetworkObjectReference.");
             return null;
         }
         
@@ -46,7 +45,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 Debug.LogError("NetworkObject does not have a valid IActor component or the pawn is not alive.");
                 return null;
             }
-            Debug.LogError("Invalid NetworkObjectReference.");
             return null;
         }
     }
