@@ -22,7 +22,23 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
         private void Update()
         {
-            if(NetworkManager.Singleton?.SpawnManager == null) return;
+            if (NetworkManager.Singleton?.SpawnManager == null)
+            {
+                if(_actors.Count > 0)
+                {
+                    _actors.Clear();
+                    ActorsById.Clear();
+                    OnActorsChanged?.Invoke();
+                    GameInstance.Instance!.EventBus.Publish(new OnActorsListChanges());
+                }
+                if (_controllers.Count > 0)
+                {
+                    _controllers.Clear();
+                    OnControllersChanged?.Invoke();
+                    GameInstance.Instance!.EventBus.Publish(new OnControllersListChanges());
+                }
+                return;
+            }
             HashSet<NetworkObject> set = NetworkManager.Singleton.SpawnManager.SpawnedObjectsList;
             if (set.Count != _oldSpawnedObjectsCount)
             {
