@@ -25,6 +25,18 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             base.OnNetworkSpawn();
         }
 
+        private void ProcessControlledActorChange(NetworkObjectReference previousValue, NetworkObjectReference newValue)
+        {
+            IActor? actor = newValue.GetActorFromNetworkObject();
+            if (actor.IsAlive())
+            {
+                PossessActor(actor);
+            }
+            else
+            {
+                ControlledActor = null;
+            }
+        }
 
         public void PossessActor(IActor actor)
         {
@@ -34,7 +46,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 return;
             }
 
-            if ((ControlledActor as Object) != null)
+            if (ControlledActor.IsAlive())
             {
                 UnpossessActor();
             }
@@ -44,7 +56,12 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             OnPossess(actor);
         }
 
-        public void OnPossess(IActor actor)
+        /// <summary>
+        /// Called after a pawn has been successfully possessed.
+        /// Override to implement custom logic during possession.
+        /// </summary>
+        /// <param name="actor">The actor that has been possessed.</param>
+        protected void OnPossess(IActor actor)
         {
             if (!IsServer)
             {
@@ -79,7 +96,11 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             OnUnpossess();
         }
 
-        public void OnUnpossess()
+        /// <summary>
+        /// Called after a actor has been unpossessed.
+        /// Override to implement custom logic during unpossession.
+        /// </summary>
+        protected void OnUnpossess()
         {
             if (!IsServer)
             {
@@ -87,19 +108,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
 
             _controlledActorReference.Value = new NetworkObjectReference();
-        }
-
-        private void ProcessControlledActorChange(NetworkObjectReference previousValue, NetworkObjectReference newValue)
-        {
-            IActor? actor = newValue.GetActorFromNetworkObject();
-            if (actor.IsAlive())
-            {
-                PossessActor(actor);
-            }
-            else
-            {
-                ControlledActor = null;
-            }
         }
     }
 }
