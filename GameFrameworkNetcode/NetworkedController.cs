@@ -26,6 +26,24 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
 
 
+        public void PossessActor(IActor actor)
+        {
+            if ((Object)actor == null)
+            {
+                Debug.LogError("Cannot possess a null pawn.");
+                return;
+            }
+
+            if ((ControlledActor as Object) != null)
+            {
+                UnpossessActor();
+            }
+
+            ControlledActor = actor;
+            actor.SetOwner(this);
+            OnPossess(actor);
+        }
+
         public void OnPossess(IActor actor)
         {
             if (!IsServer)
@@ -48,6 +66,19 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             _controlledActorReference.Value = networkBehaviour.NetworkObject;
         }
 
+        public void UnpossessActor()
+        {
+            if (!ControlledActor.IsAlive())
+            {
+                Debug.LogError("Controller is not possessing any actor.");
+                return;
+            }
+
+            if(ControlledActor.IsOwned()) ControlledActor.RemoveOwner();
+            ControlledActor = null;
+            OnUnpossess();
+        }
+
         public void OnUnpossess()
         {
             if (!IsServer)
@@ -63,7 +94,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             IActor? actor = newValue.GetActorFromNetworkObject();
             if (actor.IsAlive())
             {
-                (this as IController).PossessActor(actor);
+                PossessActor(actor);
             }
             else
             {
