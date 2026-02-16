@@ -19,12 +19,12 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
         public NetworkVariable<FixedString64Bytes> networkedUUID = new NetworkVariable<FixedString64Bytes>(writePerm: NetworkVariableWritePermission.Server, readPerm: NetworkVariableReadPermission.Everyone);
         public NetworkVariable<NetworkObjectReference> ownerReference = new NetworkVariable<NetworkObjectReference>(writePerm: NetworkVariableWritePermission.Server, readPerm: NetworkVariableReadPermission.Everyone);
-        
+
         public override void OnNetworkSpawn()
         {
-            
+
             ownerReference.OnValueChanged += HandleOwnerChanged;
-            
+
             // This is usefull only if it's an other client joining the game mid-session (and the ownerReference is already set but didn't trigger the event)
             if (!ownerReference.Value.Equals(default))
             {
@@ -35,7 +35,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 TryToChangeUUID(GetUniqueUuid());
             }
         }
-        
+
         /// <summary>
         /// Generates a unique UUID for this actor. By default, it uses Guid.NewGuid(), but you can override this method to implement your own UUID generation logic if needed.
         /// Use when spawning actors on the server to ensure they have a unique identifier across the network.
@@ -72,7 +72,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         // -------------------------------------------------------------------------
         // Public API
         // -------------------------------------------------------------------------
- 
+
         public override void SetOwner(IActor newOwner)
         {
             if (!newOwner.IsAlive())
@@ -94,10 +94,10 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
             SetOwnerServerRpc(newOwnerNetBehaviour.NetworkObject);
         }
-        
+
         public override void RemoveOwner()
         {
-            if(!Owner.IsAlive())
+            if (!Owner.IsAlive())
             {
                 Debug.LogError("No owner to remove.");
                 return;
@@ -109,22 +109,46 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
             RemoveOwnerServerRpc();
         }
-        
+
         // -------------------------------------------------------------------------
-        // Server Logic. Warning : currently, a non owner could hack the packet and possess an actor they shouldn't have access to.
+        // Server Logic.
         // -------------------------------------------------------------------------
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef)
+        public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef, ServerRpcParams serverRpcParams = default)
         {
             if (!IsServer) return;
+
+            ulong senderId = serverRpcParams.Receive.SenderClientId;
+
+            // Verify authority over this actor
+            if (senderId != OwnerClientId && senderId != NetworkManager.ServerClientId)
+            {
+                Debug.LogError($"[Security] Client {senderId} tried to modify actor {name} but does not own it.");
+                return;
+            }
+
+            // Optional: Verify authority over the new owner (parent) to prevent spamming/griefing
+            // For now, we only enforcing ownership of the child, assuming that parenting to a public object might be valid in some game logic,
+            // or that the parent's own security checks (if any) would handle it. 
+            // Strengthening this to require ownership of BOTH would be safer but more restrictive.
+            // Given the audit scope, securing 'this' is the critical first step.
+
             ownerReference.Value = newOwnerRef;
         }
-        
+
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        public void RemoveOwnerServerRpc()
+        public void RemoveOwnerServerRpc(ServerRpcParams serverRpcParams = default)
         {
             if (!IsServer) return;
+
+            ulong senderId = serverRpcParams.Receive.SenderClientId;
+            if (senderId != OwnerClientId && senderId != NetworkManager.ServerClientId)
+            {
+                Debug.LogError($"[Security] Client {senderId} tried to remove owner of {name} but does not own it.");
+                return;
+            }
+
             ownerReference.Value = new NetworkObjectReference(); // Clear the owner reference (equivalent to null)
         }
 
@@ -141,12 +165,12 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 NetworkObject.RemoveOwnership();
             }
         }
-        
-        
+
+
         // -------------------------------------------------------------------------
         // Reactive Logic (Runs on All Clients + Server)
         // -------------------------------------------------------------------------
-        
+
         /// <summary>
         /// This is the SINGLE point of truth. All logic reacts to the NetworkVariable change.
         /// </summary>

@@ -16,15 +16,15 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
         // Initializing with default (null) value
         private readonly NetworkVariable<NetworkObjectReference> _controlledActorReference = new(
-            default, 
-            NetworkVariableReadPermission.Everyone, 
+            default,
+            NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server
         );
 
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
-            
+
             // Subscribe to changes
             _controlledActorReference.OnValueChanged += HandleControlledActorChanged;
 
@@ -51,7 +51,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             // 1. Validation
             if (actor == null || (actor is UnityEngine.Object obj && obj == null))
             {
-                Debug.LogError("Attempted to possess a null actor.",this);
+                Debug.LogError("Attempted to possess a null actor.", this);
                 return;
             }
 
@@ -94,21 +94,35 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
 
         // -------------------------------------------------------------------------
-        // Server Logic. Warning : currently, a non owner could hack the packet and possess an actor they shouldn't have access to.
+        // Server Logic.
         // -------------------------------------------------------------------------
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
-        private void PossessActorServerRpc(NetworkObjectReference actorRef)
+        private void PossessActorServerRpc(NetworkObjectReference actorRef, ServerRpcParams serverRpcParams = default)
         {
-            if (!IsServer) return; 
+            if (!IsServer) return;
+
+            ulong senderId = serverRpcParams.Receive.SenderClientId;
+            if (senderId != OwnerClientId && senderId != NetworkManager.ServerClientId)
+            {
+                Debug.LogError($"[Security] Client {senderId} tried to possess an actor with Controller {OwnerClientId} that they do not own.");
+                return;
+            }
 
             _controlledActorReference.Value = actorRef;
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
-        private void UnpossessActorServerRpc()
+        private void UnpossessActorServerRpc(ServerRpcParams serverRpcParams = default)
         {
             if (!IsServer) return;
+
+            ulong senderId = serverRpcParams.Receive.SenderClientId;
+            if (senderId != OwnerClientId && senderId != NetworkManager.ServerClientId)
+            {
+                Debug.LogError($"[Security] Client {senderId} tried to unpossess an actor with Controller {OwnerClientId} that they do not own.");
+                return;
+            }
 
             _controlledActorReference.Value = new NetworkObjectReference(); // Null reference
         }
@@ -124,33 +138,33 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         {
             // 1. Handle Unpossess (Cleanup previous)
             // We check if we had a locally tracked actor, or try to resolve the previous ID
-            if (ControlledActor != null) 
+            if (ControlledActor != null)
             {
                 // Logic cleanup
                 if (ControlledActor.IsOwned())
                 {
                     ControlledActor.RemoveOwner();
                 }
-                
+
                 // Fire virtual callback
                 OnUnpossess();
-                
+
                 ControlledActor = null;
             }
             // Fallback: If local state was desynced, ensure we don't leave dangling references based on previousValue
-            else 
+            else
             {
-                 IActor? previousActor = previousValue.GetActorFromNetworkObject();
-                 if (previousActor != null && previousActor.IsAlive())
-                 {
-                     // Force cleanup just in case
-                     if(previousActor.IsOwned()) previousActor.RemoveOwner();
-                 }
+                IActor? previousActor = previousValue.GetActorFromNetworkObject();
+                if (previousActor != null && previousActor.IsAlive())
+                {
+                    // Force cleanup just in case
+                    if (previousActor.IsOwned()) previousActor.RemoveOwner();
+                }
             }
 
             // 2. Handle Possess (Setup new)
             IActor? newActor = newValue.GetActorFromNetworkObject();
-            
+
             // Check if the new value is actually a valid actor
             if (newActor != null && newActor.IsAlive())
             {
@@ -159,7 +173,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 {
                     newActor.SetOwner(this);
                 }
-                
+
                 // Fire virtual callback
                 OnPossess(newActor);
             }
