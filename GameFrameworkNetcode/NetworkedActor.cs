@@ -22,10 +22,9 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         
         public override void OnNetworkSpawn()
         {
-            if(!IsServer)
-            {
-                ownerReference.OnValueChanged += HandleOwnerChanged;
-            }
+            
+            ownerReference.OnValueChanged += HandleOwnerChanged;
+            
             // This is usefull only if it's an other client joining the game mid-session (and the ownerReference is already set but didn't trigger the event)
             if (!ownerReference.Value.Equals(default))
             {
@@ -73,6 +72,10 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             return true;
         }
 
+        // -------------------------------------------------------------------------
+        // Public API
+        // -------------------------------------------------------------------------
+ 
         public override void SetOwner(IActor newOwner)
         {
             if (!newOwner.IsAlive())
@@ -86,73 +89,49 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 return;
             }
 
+            if (!IsServer && !newOwner.IsOwned())
+            {
+                Debug.LogError("Can only set owner to an already owned actor when not the server.");
+                return;
+            }
+
             SetOwnerServerRpc(newOwnerNetBehaviour.NetworkObject);
         }
         
-        [Rpc(SendTo.Server)]
-        public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef)
-        {
-            if (!IsServer) return;
-
-            var newOwner = newOwnerRef.TryGet(out var ownerObj) ? ownerObj.GetComponent<IActor>() : null;
-            if (newOwner == null)
-            {
-                Debug.LogError("Failed to set owner: Invalid NetworkObjectReference.");
-                return;
-            }
-            
-            IActor? lastOwner = _owner;
-            _owner = newOwner;
-            ownerReference.Value = newOwnerRef;
-            OnOwnerDidChange(lastOwner, _owner);
-        }
-        
-        private void HandleOwnerChanged(NetworkObjectReference previousValue, NetworkObjectReference newValue)
-        {
-            IActor? lastOwner = _owner;
-            if (newValue.TryGet(out var newOwnerObj))
-            {
-                _owner = newOwnerObj.GetComponent<IActor>();
-            }
-            else
-            {
-                _owner = null;
-            }
-
-            OnOwnerDidChange(lastOwner, _owner);
-        }
-
         public override void RemoveOwner()
         {
-            if (!IsOwner)
+            if(!Owner.IsAlive())
             {
-                Debug.LogError("Only the owner can remove itself as the owner.");
+                Debug.LogError("No owner to remove.");
+                return;
+            }
+            if (!IsServer && !Owner!.IsOwned())
+            {
+                Debug.LogError("Can only remove owner if it's already owned by the same player when not the server.");
                 return;
             }
             RemoveOwnerServerRpc();
         }
         
-        [Rpc(SendTo.Server)]
+        // -------------------------------------------------------------------------
+        // Server Logic. Warning : currently, a non owner could hack the packet and possess an actor they shouldn't have access to.
+        // -------------------------------------------------------------------------
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef)
+        {
+            if (!IsServer) return;
+            ownerReference.Value = newOwnerRef;
+        }
+        
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         public void RemoveOwnerServerRpc()
         {
             if (!IsServer) return;
-
-            IActor? lastOwner = _owner;
-            _owner = null;
             ownerReference.Value = new NetworkObjectReference(); // Clear the owner reference (equivalent to null)
-            OnOwnerDidChange(lastOwner, null);
-        }
-        
-        protected override void HandleAnyOwnerChange()
-        {
-            ServerChangeOwnerShip();
-            if (IsServer)
-            {
-                ProcessSafeOwnershipChange();
-            }
         }
 
-        private void ServerChangeOwnerShip()
+        private void UpdateNetworkBehaviorOwnsership()
         {
             if (!IsServer) return;
             IMachine? machine = (this as IActor).Controller?.Machine;
@@ -166,14 +145,31 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
         }
         
-        public override void OnGainedOwnership()
+        
+        // -------------------------------------------------------------------------
+        // Reactive Logic (Runs on All Clients + Server)
+        // -------------------------------------------------------------------------
+        
+        /// <summary>
+        /// This is the SINGLE point of truth. All logic reacts to the NetworkVariable change.
+        /// </summary>
+        private void HandleOwnerChanged(NetworkObjectReference previousValue, NetworkObjectReference newValue)
         {
-            ProcessSafeOwnershipChange();
-        }
+            IActor? lastOwner = _owner;
+            if (newValue.TryGet(out var newOwnerObj))
+            {
+                _owner = newOwnerObj.GetComponent<IActor>();
+            }
+            else
+            {
+                _owner = null;
+            }
 
-        public override void OnLostOwnership()
-        {
-            ProcessSafeOwnershipChange();
+            OnOwnerDidChange(lastOwner, _owner);
+            if (IsServer)
+            {
+                UpdateNetworkBehaviorOwnsership();
+            }
         }
     }
 }
