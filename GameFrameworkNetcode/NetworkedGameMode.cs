@@ -118,7 +118,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             {
                 if (((NetworkBehaviour)ctrl).OwnerClientId == clientId)
                 {
-                    ctrl.UnpossessActor();
+                    if(ctrl.ControlledActor.IsAlive()) ctrl.UnpossessActor();
                     break;
                 }
             }
