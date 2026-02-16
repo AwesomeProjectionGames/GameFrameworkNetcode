@@ -127,7 +127,10 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             if (ControlledActor != null) 
             {
                 // Logic cleanup
-                ControlledActor.RemoveOwner();
+                if (ControlledActor.IsOwned())
+                {
+                    ControlledActor.RemoveOwner();
+                }
                 
                 // Fire virtual callback
                 OnUnpossess();
@@ -152,7 +155,10 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             if (newActor != null && newActor.IsAlive())
             {
                 ControlledActor = newActor;
-                newActor.SetOwner(this);
+                if (ControlledActor.IsOwned())
+                {
+                    newActor.SetOwner(this);
+                }
                 
                 // Fire virtual callback
                 OnPossess(newActor);

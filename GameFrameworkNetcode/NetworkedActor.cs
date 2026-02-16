@@ -50,10 +50,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
-            if(!IsServer)
-            {
-                ownerReference.OnValueChanged -= HandleOwnerChanged;
-            }
+            ownerReference.OnValueChanged -= HandleOwnerChanged;
             if (_owner != null)
             {
                 _owner.OnAnyOwnerChanged -= HandleAnyOwnerChange;
