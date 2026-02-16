@@ -98,7 +98,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         // -------------------------------------------------------------------------
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
-        private void PossessActorServerRpc(NetworkObjectReference actorRef, ServerRpcParams serverRpcParams = default)
+        private void PossessActorServerRpc(NetworkObjectReference actorRef, RpcParams serverRpcParams = default)
         {
             if (!IsServer) return;
 
@@ -113,7 +113,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
-        private void UnpossessActorServerRpc(ServerRpcParams serverRpcParams = default)
+        private void UnpossessActorServerRpc(RpcParams serverRpcParams = default)
         {
             if (!IsServer) return;
 

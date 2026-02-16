@@ -115,7 +115,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         // -------------------------------------------------------------------------
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef, ServerRpcParams serverRpcParams = default)
+        public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef, RpcParams serverRpcParams = default)
         {
             if (!IsServer) return;
 
@@ -138,7 +138,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        public void RemoveOwnerServerRpc(ServerRpcParams serverRpcParams = default)
+        public void RemoveOwnerServerRpc(RpcParams serverRpcParams = default)
         {
             if (!IsServer) return;
 
