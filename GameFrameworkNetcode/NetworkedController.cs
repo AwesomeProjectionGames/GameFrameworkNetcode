@@ -97,8 +97,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         // Server Logic.
         // -------------------------------------------------------------------------
 
+#if UNITY_6000_0_OR_NEWER || UNITY_2023_1_OR_NEWER
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
         private void PossessActorServerRpc(NetworkObjectReference actorRef, RpcParams serverRpcParams = default)
+#else
+        [ServerRpc(RequireOwnership = false)]
+        private void PossessActorServerRpc(NetworkObjectReference actorRef, ServerRpcParams serverRpcParams = default)
+#endif
         {
             if (!IsServer) return;
 
@@ -112,8 +117,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             _controlledActorReference.Value = actorRef;
         }
 
+#if UNITY_6000_0_OR_NEWER || UNITY_2023_1_OR_NEWER
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
         private void UnpossessActorServerRpc(RpcParams serverRpcParams = default)
+#else
+        [ServerRpc(RequireOwnership = false)]
+        private void UnpossessActorServerRpc(ServerRpcParams serverRpcParams = default)
+#endif
         {
             if (!IsServer) return;
 

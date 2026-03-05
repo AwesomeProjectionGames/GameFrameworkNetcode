@@ -114,8 +114,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         // Server Logic.
         // -------------------------------------------------------------------------
 
+#if UNITY_6000_0_OR_NEWER || UNITY_2023_1_OR_NEWER
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef, RpcParams serverRpcParams = default)
+#else
+        [ServerRpc(RequireOwnership = false)]
+        public void SetOwnerServerRpc(NetworkObjectReference newOwnerRef, ServerRpcParams serverRpcParams = default)
+#endif
         {
             if (!IsServer) return;
 
@@ -137,8 +142,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             ownerReference.Value = newOwnerRef;
         }
 
+#if UNITY_6000_0_OR_NEWER || UNITY_2023_1_OR_NEWER
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         public void RemoveOwnerServerRpc(RpcParams serverRpcParams = default)
+#else
+        [ServerRpc(RequireOwnership = false)]
+        public void RemoveOwnerServerRpc(ServerRpcParams serverRpcParams = default)
+#endif
         {
             if (!IsServer) return;
 
