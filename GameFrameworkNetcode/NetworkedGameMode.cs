@@ -6,6 +6,7 @@ using GameFramework.Saving;
 using GameFramework.SpawnPoint;
 using Unity.Netcode;
 using UnityEngine;
+using UnityGameFrameworkImplementations.BaseImplementation;
 
 namespace UnityGameFrameworkImplementations.Core.Netcode
 {
@@ -20,7 +21,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         [SerializeField] GameObject defaultControllerPrefab = null!;
         [SerializeField] private BaseSpawnPoint spawnPoints;
 
-        private NetworkedGameModeState _networkedGameModeState;
+        [BindEntityComponent] NetworkedGameModeState _networkedGameModeState;
 
         public override void OnNetworkSpawn()
         {
@@ -32,11 +33,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         {
             NetworkManager.OnClientConnectedCallback -= HandleClientConnected;
             NetworkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
-        }
-
-        protected virtual void Awake()
-        {
-            _networkedGameModeState = GetComponent<NetworkedGameModeState>();
         }
 
         protected virtual void OnEnable()
