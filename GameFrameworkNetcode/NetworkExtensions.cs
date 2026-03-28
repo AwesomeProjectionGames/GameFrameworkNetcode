@@ -26,6 +26,22 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
         
         /// <summary>
+        /// Attempts to retrieve the <see cref="NetworkObject"/> associated with this entity.
+        /// Returns null if the entity is not alive SILENTLY.
+        /// </summary>
+        /// <returns>The NetworkObject if found and the entity is valid; otherwise, null.</returns>
+        public static NetworkObject? GetNetworkObject(this IEntity entity)
+        {
+            if(!entity.IsAlive()) return null;
+            if(!entity.Transform.TryGetComponent(out NetworkObject networkObject))
+            {
+                Debug.LogError("Entity does not have a NetworkObject or it is not spawned.");
+                return null;
+            }
+            return networkObject;
+        }
+        
+        /// <summary>
         /// Returns true if the local client is the owner of this actor's NetworkObject.
         /// Returns false if the actor is not alive, does not have a NetworkObject, or if the local client is not the owner of the NetworkObject.
         /// </summary>

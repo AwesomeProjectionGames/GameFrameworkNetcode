@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using GameFramework;
+using GameFramework.Dependencies;
 using GameFramework.Events;
 using GameFramework.Identification;
 using Unity.Netcode;
 
 namespace UnityGameFrameworkImplementations.Core.Netcode
 {
-    public class NetworkedGameModeState : NetBehaviour, IGameState
+    public class NetworkedGameModeState : NetBehaviour, IGameState, IEntityComponent
     {
+        public IEntity Entity { get; set; }
+        
         public IEnumerable<IController> Controllers => _controllers;
         public IEnumerable<IActor> Actors => _actors;
         public Dictionary<string, IActor> ActorsById { get; } = new();
@@ -29,13 +32,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     _actors.Clear();
                     ActorsById.Clear();
                     OnActorsChanged?.Invoke();
-                    GameInstance.Instance!.EventBus.Publish(new OnActorsListChanges());
+                    GameInstance.Instance!.EventDispatcher.Publish(new OnActorsListChanges());
                 }
                 if (_controllers.Count > 0)
                 {
                     _controllers.Clear();
                     OnControllersChanged?.Invoke();
-                    GameInstance.Instance!.EventBus.Publish(new OnControllersListChanges());
+                    GameInstance.Instance!.EventDispatcher.Publish(new OnControllersListChanges());
                 }
                 return;
             }
@@ -57,7 +60,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 {
                     _actors = newActors;
                     OnActorsChanged?.Invoke();
-                    GameInstance.Instance!.EventBus.Publish(new OnActorsListChanges());
+                    GameInstance.Instance!.EventDispatcher.Publish(new OnActorsListChanges());
                     
                     // Update Controllers and Pawns based on the new actors
                     HashSet<IController> newControllers = new HashSet<IController>();
@@ -72,7 +75,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     {
                         _controllers = newControllers;
                         OnControllersChanged?.Invoke();
-                        GameInstance.Instance!.EventBus.Publish(new OnControllersListChanges());
+                        GameInstance.Instance!.EventDispatcher.Publish(new OnControllersListChanges());
                     }
                 }
             }

@@ -10,7 +10,7 @@ using UnityEngine;
 namespace UnityGameFrameworkImplementations.Core.Netcode
 {
     [RequireComponent(typeof(NetworkedGameModeState))]
-    public class NetworkedGameMode : NetBehaviour, IGameMode
+    public class NetworkedGameMode : NetEntity, IGameMode
     {
         public IPawn DefaultPawnPrefab => defaultPawnPrefab.GetComponent<IPawn>();
         public IController DefaultControllerPrefab => defaultControllerPrefab.GetComponent<IController>();
