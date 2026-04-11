@@ -11,6 +11,18 @@ namespace GameFramework.Saving
         /// After that, we should rely on smaller, incremental updates to keep clients in sync.
         /// </summary>
         /// <param name="clientId">The client identifier to send the state to.</param>
-        void SendStateToClient(ulong clientId);
+        void SendStateToClientFromServer(ulong clientId);
+        
+        /// <summary>
+        /// Serialize the current state and Broadcast the current state of the object to all clients.
+        /// We expect it to send to all clients, including the one that initiated the change and the host.
+        /// </summary>
+        void SendStateToAllClientsFromServer();
+        
+        /// <summary>
+        /// Should Serialize and Send the current state of the object to the server.
+        /// Expected to be called by the owner client of the object when its state changes and needs to be replicated to other clients.
+        /// </summary>
+        void SendStateToServerFromClient();
     }
 }

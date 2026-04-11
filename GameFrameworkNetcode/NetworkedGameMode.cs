@@ -103,7 +103,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             {
                 if (actor is INetworkedSerializedObject serializable)
                 {
-                    serializable.SendStateToClient(clientId);
+                    serializable.SendStateToClientFromServer(clientId);
                 }
             }
         }

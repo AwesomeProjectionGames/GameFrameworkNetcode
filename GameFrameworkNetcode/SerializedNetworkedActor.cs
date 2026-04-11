@@ -35,16 +35,38 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
         }
 
-        public void SendStateToClient(ulong clientId)
+        public void SendStateToClientFromServer(ulong clientId)
         {
+            if(!IsServer) return;
             string stateJson = Serialize();
             SendSerializedStateRpc(stateJson, RpcTarget.Single(clientId, RpcTargetUse.Temp));
         }
-        
+
+        public void SendStateToAllClientsFromServer()
+        {
+            if(!IsServer) return;
+            string stateJson = Serialize();
+            SendSerializedStateRpc(stateJson);
+        }
+
+        public void SendStateToServerFromClient()
+        {
+            if(!IsClient) return;
+            string stateJson = Serialize();
+            SendSerializedStateRpc(stateJson, RpcTarget.Server);
+        }
+
         [Rpc(SendTo.SpecifiedInParams)]
         private void SendSerializedStateRpc(string serializedData, RpcParams rpcParams = default)
         {
             Deserialize(serializedData);
+            if (IsServer)
+            {
+                ulong senderId = rpcParams.Receive.SenderClientId;
+                // Relay to all clients EXCEPT the sender
+                // We use Not(senderId) to prevent jitter/redundant updates on the originating client
+                SendSerializedStateRpc(serializedData, RpcTarget.Not(senderId, RpcTargetUse.Temp));
+            }
         }
 
         protected abstract T GetState();
