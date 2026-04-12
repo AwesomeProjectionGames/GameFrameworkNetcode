@@ -32,13 +32,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     _actors.Clear();
                     ActorsById.Clear();
                     OnActorsChanged?.Invoke();
-                    GameInstance.Instance!.EventDispatcher.Publish(new OnActorsListChanges());
+                    Entity.GlobalEventDispatcher()!.Publish(new OnActorsListChanges());
                 }
                 if (_controllers.Count > 0)
                 {
                     _controllers.Clear();
                     OnControllersChanged?.Invoke();
-                    GameInstance.Instance!.EventDispatcher.Publish(new OnControllersListChanges());
+                    Entity.GlobalEventDispatcher()!.Publish(new OnControllersListChanges());
                 }
                 return;
             }
@@ -60,7 +60,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 {
                     _actors = newActors;
                     OnActorsChanged?.Invoke();
-                    GameInstance.Instance!.EventDispatcher.Publish(new OnActorsListChanges());
+                    Entity.GlobalEventDispatcher()!.Publish(new OnActorsListChanges());
                     
                     // Update Controllers and Pawns based on the new actors
                     HashSet<IController> newControllers = new HashSet<IController>();
@@ -75,7 +75,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                     {
                         _controllers = newControllers;
                         OnControllersChanged?.Invoke();
-                        GameInstance.Instance!.EventDispatcher.Publish(new OnControllersListChanges());
+                        Entity.GlobalEventDispatcher()!.Publish(new OnControllersListChanges());
                     }
                 }
             }

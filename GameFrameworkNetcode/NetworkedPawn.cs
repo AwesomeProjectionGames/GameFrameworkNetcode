@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using System;
+using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
 using UnityEngine;
 
@@ -14,13 +15,13 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         #region Pawn
         public void Respawn()
         {
-            if(GameInstance.Instance?.CurrentGameMode == null)
+            if(!this.GameMode().IsAlive())
             {
                 Debug.LogError("GameMode is not set. Cannot respawn player.");
                 return;
             }
 
-            Tuple<Vector3, Quaternion> tuple = GameInstance.Instance.CurrentGameMode.GetSpawnPoint(this).Select();
+            Tuple<Vector3, Quaternion> tuple = this.GameMode()!.GetSpawnPoint(this).Select();
             if (tuple == null)
             {
                 Debug.LogError("No spawn point found for player " + gameObject.name);

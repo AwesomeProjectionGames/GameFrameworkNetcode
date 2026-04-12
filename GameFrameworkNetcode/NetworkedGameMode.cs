@@ -126,26 +126,18 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
 
         #region Spawning
-        public IActor? Spawn(IActor prefab, bool destroyWithScene = true)
+        public IEntity? Spawn(IEntity prefab, bool destroyWithScene = true)
         {
             GameObject? spawned = SpawnPawn(prefab.Transform.gameObject, destroyWithScene);
             if (spawned == null) return null;
             return spawned.GetComponent<IActor>();
         }
 
-        public IActor? SpawnAtLocation(IActor prefab, Vector3 location, Quaternion rotation, bool destroyWithScene = true)
+        public IEntity? SpawnAtLocation(IEntity prefab, Vector3 location, Quaternion rotation, bool destroyWithScene = true)
         {
-            IActor? actor = Spawn(prefab, destroyWithScene);
+            IEntity? actor = Spawn(prefab, destroyWithScene);
             if (actor == null) return null;
-            if (actor is IPawn pawn)
-            {
-                pawn.Teleport(location, rotation);
-            }
-            else
-            {
-                actor.Transform.position = location;
-                actor.Transform.rotation = rotation;
-            }
+            actor.Move(location, rotation);
             return actor;
         }
 
