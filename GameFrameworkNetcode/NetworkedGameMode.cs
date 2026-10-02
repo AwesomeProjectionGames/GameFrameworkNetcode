@@ -1,6 +1,5 @@
 ﻿#nullable enable
 
-using System.Collections.Generic;
 using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
 using GameFramework.Saving;
@@ -24,47 +23,17 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
         [BindEntityComponent] NetworkedGameModeState _networkedGameModeState;
 
-        /// <summary>
-        /// Maps a network prefab hash (<see cref="NetworkObject.PrefabIdHash"/>) to its registered
-        /// NetworkPrefab asset. Built once on spawn so resolving a prefab during <see cref="Spawn"/>
-        /// is an O(1) lookup over already-resident assets.
-        /// A scene instance of a prefab reports the same hash as the prefab asset it derives from,
-        /// so this resolves any networked actor, not just those exposing a content identifier.
-        /// </summary>
-        private readonly Dictionary<uint, GameObject> _prefabsByNetworkHash = new();
-
         public override void OnNetworkSpawn()
         {
             NetworkManager.OnClientConnectedCallback += HandleClientConnected;
             NetworkManager.OnClientDisconnectCallback += HandleClientDisconnected;
-
-            CacheRegisteredNetworkPrefabs();
         }
 
         public override void OnNetworkDespawn()
         {
             NetworkManager.OnClientConnectedCallback -= HandleClientConnected;
             NetworkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
-
-            _prefabsByNetworkHash.Clear();
         }
-
-        private void CacheRegisteredNetworkPrefabs()
-        {
-            _prefabsByNetworkHash.Clear();
-
-            foreach (NetworkPrefab networkPrefab in NetworkManager.NetworkConfig.Prefabs.Prefabs)
-            {
-                if (networkPrefab.Prefab == null) continue;
-
-                uint hash = networkPrefab.Prefab.GetComponent<NetworkObject>()?.PrefabIdHash ?? 0;
-                if (hash != 0)
-                {
-                    _prefabsByNetworkHash[hash] = networkPrefab.Prefab;
-                }
-            }
-        }
-
 
         protected virtual void OnEnable()
         {
@@ -195,16 +164,32 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 Debug.LogError($"{nameof(InternalSpawn)} can only be called on the server.");
                 return null;
             }
-            
-            GameObject? prefabAsset = ResolveProjectPrefab(prefab);
-            if (prefabAsset == null)
+
+            // If a scene instance is passed, load its project prefab asset via ResourcePath
+            if (prefab.scene.IsValid())
             {
-                networkObject = null;
-                return null;
+                var actor = prefab.GetComponent<IActor>();
+                if (actor != null && !string.IsNullOrEmpty(actor.ResourcePath))
+                {
+                    var loadedAsset = Resources.Load<GameObject>(actor.ResourcePath);
+                    if (loadedAsset != null)
+                    {
+                        prefab = loadedAsset;
+                    }
+                    else
+                    {
+                        Debug.LogError($"Cannot spawn scene instance '{prefab.name}': failed to load prefab from Resources at '{actor.ResourcePath}'.", prefab);
+                        return null;
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"Cannot spawn scene instance '{prefab.name}': it is not an IActor or has no ResourcePath. Configure ResourcePath on the actor prefab in a Resources folder.", prefab);
+                    return null;
+                }
             }
 
-            GameObject obj = Instantiate(prefabAsset);
-
+            GameObject obj = Instantiate(prefab);
             networkObject = obj.GetComponent<NetworkObject>();
 
             if (networkObject == null)
@@ -213,49 +198,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
 
             return obj;
-        }
-
-
-        /// <summary>
-        /// Resolves a scene-placed GameObject back to the registered NetworkPrefab asset it derives
-        /// from, so that network spawning operates on a project asset instead of a scene instance.
-        /// Netcode cannot spawn an unregistered prefab: clients resolve the prefab by hash, so
-        /// instantiating a scene object would produce an object no client can spawn.
-        /// If <paramref name="source"/> is already a project asset it is returned directly.
-        /// Returns null and logs the specific reason when no registered prefab can be resolved.
-        /// </summary>
-        protected virtual GameObject? ResolveProjectPrefab(GameObject source)
-        {
-            // Already an asset (prefab reference or Resources.Load result), nothing to resolve.
-            if (!source.scene.IsValid()) return source;
-
-            NetworkObject? sourceNetObj = source.GetComponent<NetworkObject>();
-            if (sourceNetObj == null)
-            {
-                Debug.LogError(
-                    $"Cannot spawn '{source.name}' as a scene instance: it has no NetworkObject. " +
-                    "Add a NetworkObject, or reference the prefab asset instead of a scene instance.", source);
-                return null;
-            }
-
-            uint hash = sourceNetObj.PrefabIdHash;
-            if (hash == 0)
-            {
-                Debug.LogError(
-                    $"Cannot spawn '{source.name}' as a scene instance: its NetworkObject has no prefab hash. " +
-                    "This object was likely added procedurally without being saved; re-save the scene.", source);
-                return null;
-            }
-
-            if (_prefabsByNetworkHash.TryGetValue(hash, out GameObject? registered))
-            {
-                return registered;
-            }
-
-            Debug.LogError(
-                $"Cannot spawn '{source.name}' as a scene instance: its prefab hash {hash} is not among the " +
-                "registered NetworkPrefabs. Add it to the NetworkManager's Network Prefabs list.", source);
-            return null;
         }
         #endregion
     }
