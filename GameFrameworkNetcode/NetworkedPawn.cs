@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System;
 using AwesomeProjectionCoreUtils.Extensions;
@@ -13,6 +13,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
     public abstract class NetworkedPawn : SerializedNetworkedActor<PawnBaseState>, IPawn
     {
         #region Pawn
+        [ReplicatedMethod]
         public void Respawn()
         {
             if(!this.GameMode().IsAlive())
@@ -30,6 +31,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             Teleport(tuple.Item1, tuple.Item2);
         }
 
+        [ReplicatedMethod]
         public abstract void Teleport(Vector3 location, Quaternion rotation);
 
         protected override PawnBaseState GetState()

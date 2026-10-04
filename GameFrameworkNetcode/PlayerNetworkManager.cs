@@ -1,8 +1,8 @@
-﻿using Unity.Netcode;
+using Unity.Netcode;
 
 namespace UnityGameFrameworkImplementations.Core.Netcode
 {
-    public class PlayerNetworkBehavior : NetworkManager
+    public class PlayerNetworkManager : NetworkManager
     {
         private void Start()
         {

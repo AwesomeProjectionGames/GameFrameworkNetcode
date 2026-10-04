@@ -5,10 +5,10 @@ using System;
 namespace UnityGameFrameworkImplementations.Core.Netcode
 {
     /// <summary>
-    /// Indicates that calling this method triggers network replication (e.g. via RPCs or network state changes).
-    /// Particularly useful for polymorphic or interface methods whose names cannot follow standard RPC naming conventions (e.g. ...Rpc).
+    /// Indicates that calling this method or accessing this property triggers network replication (e.g. via RPCs or network state changes).
+    /// Particularly useful for polymorphic or interface members whose names cannot follow standard RPC naming conventions (e.g. ...Rpc).
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
     public sealed class ReplicatedMethodAttribute : Attribute
     {
         /// <summary>

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
@@ -68,19 +68,23 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
         protected virtual void HandleClientConnected(ulong clientId)
         {
-            if (!IsServer) return;
-            SpawnPlayer(clientId);
-            SendActorStatesToNewClient(clientId);
+            Server_HandleClientConnected(clientId);
         }
 
-        
+        protected virtual void Server_HandleClientConnected(ulong clientId)
+        {
+            if (!IsServer) return;
+            Server_SpawnPlayer(clientId);
+            Server_SendActorStatesToNewClient(clientId);
+        }
+
         /// <summary>
         /// Spawn a full player, inclusing Controller and optionnally spectate controller, and possess a pawn if a default pawn prefab is set.
         /// </summary>
         /// <param name="clientId"></param>
-        protected IController? SpawnPlayer(ulong clientId)
+        protected IController? Server_SpawnPlayer(ulong clientId)
         {
-            var controllerGO = SpawnOwnedPawn(clientId, defaultControllerPrefab, false);
+            var controllerGO = Server_SpawnOwnedPawn(clientId, defaultControllerPrefab, false);
             var controller = controllerGO?.GetComponent<IController>();
             if (controller == null) return null;
 
@@ -96,20 +100,26 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             return controller;
         }
 
-        protected void SendActorStatesToNewClient(ulong clientId)
+        protected void Server_SendActorStatesToNewClient(ulong clientId)
         {
             //Send other actor states
             foreach (var actor in CurrentGameState.Actors)
             {
                 if (actor is INetworkedSerializedObject serializable)
                 {
-                    serializable.SendStateToClientFromServer(clientId);
+                    serializable.Server_SendStateToClient(clientId);
                 }
             }
         }
 
         protected void HandleClientDisconnected(ulong clientId)
         {
+            Server_HandleClientDisconnected(clientId);
+        }
+
+        protected virtual void Server_HandleClientDisconnected(ulong clientId)
+        {
+            if (!IsServer) return;
             foreach (var ctrl in CurrentGameState.Controllers)
             {
                 if (((NetworkBehaviour)ctrl).OwnerClientId == clientId)
@@ -126,13 +136,15 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
 
         #region Spawning
+        [ReplicatedMethod]
         public IEntity? Spawn(IEntity prefab, bool destroyWithScene = true)
         {
-            GameObject? spawned = SpawnPawn(prefab.Transform.gameObject, destroyWithScene);
+            GameObject? spawned = Server_SpawnPawn(prefab.Transform.gameObject, destroyWithScene);
             if (spawned == null) return null;
             return spawned.GetComponent<IActor>();
         }
 
+        [ReplicatedMethod]
         public IEntity? SpawnAtLocation(IEntity prefab, Vector3 location, Quaternion rotation, bool destroyWithScene = true)
         {
             IEntity? actor = Spawn(prefab, destroyWithScene);
@@ -141,27 +153,27 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             return actor;
         }
 
-        private GameObject? SpawnOwnedPawn(ulong clientId, GameObject playerPrefab, bool destroyWithScene = true)
+        private GameObject? Server_SpawnOwnedPawn(ulong clientId, GameObject playerPrefab, bool destroyWithScene = true)
         {
-            var obj = InternalSpawn(playerPrefab, destroyWithScene, out var netObj);
+            var obj = Server_InternalSpawn(playerPrefab, destroyWithScene, out var netObj);
             netObj?.SpawnAsPlayerObject(clientId, destroyWithScene);
             return obj;
         }
 
-        private GameObject? SpawnPawn(GameObject pawnPrefab, bool destroyWithScene = true)
+        private GameObject? Server_SpawnPawn(GameObject pawnPrefab, bool destroyWithScene = true)
         {
-            var obj = InternalSpawn(pawnPrefab, destroyWithScene, out var netObj);
+            var obj = Server_InternalSpawn(pawnPrefab, destroyWithScene, out var netObj);
             netObj?.Spawn(destroyWithScene);
             return obj;
         }
 
-        private GameObject? InternalSpawn(GameObject prefab, bool destroyWithScene, out NetworkObject? networkObject)
+        private GameObject? Server_InternalSpawn(GameObject prefab, bool destroyWithScene, out NetworkObject? networkObject)
         {
             networkObject = null;
 
             if (!IsServer)
             {
-                Debug.LogError($"{nameof(InternalSpawn)} can only be called on the server.");
+                Debug.LogError($"{nameof(Server_InternalSpawn)} can only be called on the server.");
                 return null;
             }
 

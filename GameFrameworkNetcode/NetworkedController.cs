@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
@@ -15,7 +15,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         public ISpectateController? SpectateController { get; set; }
 
         // Initializing with default (null) value
-        private readonly NetworkVariable<NetworkObjectReference> _controlledActorReference = new(
+        private readonly NetworkVariable<NetworkObjectReference> _netControlledActorReference = new(
             default,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server
@@ -26,19 +26,19 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             base.OnNetworkSpawn();
 
             // Subscribe to changes
-            _controlledActorReference.OnValueChanged += HandleControlledActorChanged;
+            _netControlledActorReference.OnValueChanged += HandleControlledActorChanged;
 
             // This is usefull only if it's an other client joining the game mid-session (and the ownerReference is already set but didn't trigger the event)
-            if (!_controlledActorReference.Value.Equals(default))
+            if (!_netControlledActorReference.Value.Equals(default))
             {
                 // Initial sync: If we are joining late or just spawned, process the current value
-                HandleControlledActorChanged(default, _controlledActorReference.Value);
+                HandleControlledActorChanged(default, _netControlledActorReference.Value);
             }
         }
 
         public override void OnNetworkDespawn()
         {
-            _controlledActorReference.OnValueChanged -= HandleControlledActorChanged;
+            _netControlledActorReference.OnValueChanged -= HandleControlledActorChanged;
             base.OnNetworkDespawn();
         }
 
@@ -46,6 +46,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         // Public API
         // -------------------------------------------------------------------------
 
+        [ReplicatedMethod]
         public void PossessActor(IActor actor)
         {
             // 1. Validation
@@ -70,9 +71,10 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
 
             // 3. Request Change via RPC
-            PossessActorServerRpc(networkBehaviour.NetworkObject);
+            RequestPossessActorRpc(networkBehaviour.NetworkObject);
         }
 
+        [ReplicatedMethod]
         public void UnpossessActor()
         {
             // 1. Validation
@@ -90,7 +92,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
 
             // 3. Request Change via RPC
-            UnpossessActorServerRpc();
+            RequestUnpossessActorRpc();
         }
 
         // -------------------------------------------------------------------------
@@ -99,10 +101,10 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
 
 #if UNITY_6000_0_OR_NEWER || UNITY_2023_1_OR_NEWER
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
-        private void PossessActorServerRpc(NetworkObjectReference actorRef, RpcParams serverRpcParams = default)
+        private void RequestPossessActorRpc(NetworkObjectReference actorRef, RpcParams serverRpcParams = default)
 #else
         [ServerRpc(RequireOwnership = false)]
-        private void PossessActorServerRpc(NetworkObjectReference actorRef, ServerRpcParams serverRpcParams = default)
+        private void RequestPossessActorRpc(NetworkObjectReference actorRef, ServerRpcParams serverRpcParams = default)
 #endif
         {
             if (!IsServer) return;
@@ -114,15 +116,15 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 return;
             }
 
-            _controlledActorReference.Value = actorRef;
+            _netControlledActorReference.Value = actorRef;
         }
 
 #if UNITY_6000_0_OR_NEWER || UNITY_2023_1_OR_NEWER
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]// Everyone because we check permissions manually/allow server calls
-        private void UnpossessActorServerRpc(RpcParams serverRpcParams = default)
+        private void RequestUnpossessActorRpc(RpcParams serverRpcParams = default)
 #else
         [ServerRpc(RequireOwnership = false)]
-        private void UnpossessActorServerRpc(ServerRpcParams serverRpcParams = default)
+        private void RequestUnpossessActorRpc(ServerRpcParams serverRpcParams = default)
 #endif
         {
             if (!IsServer) return;
@@ -134,7 +136,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 return;
             }
 
-            _controlledActorReference.Value = new NetworkObjectReference(); // Null reference
+            _netControlledActorReference.Value = new NetworkObjectReference(); // Null reference
         }
 
         // -------------------------------------------------------------------------

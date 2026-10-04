@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
@@ -16,15 +16,16 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         /// <returns>The NetworkObject if found and the actor is valid; otherwise, null.</returns>
         public static NetworkObject? GetNetworkObject(this IActor actor)
         {
-            if(!actor.IsAlive()) return null;
-            if(!actor.Transform.TryGetComponent(out NetworkObject networkObject))
+            if (!actor.IsAlive()) return null;
+            if (!actor.Transform.TryGetComponent(out NetworkObject networkObject))
             {
                 Debug.LogError("Actor does not have a NetworkObject or it is not spawned.");
                 return null;
             }
+
             return networkObject;
         }
-        
+
         /// <summary>
         /// Attempts to retrieve the <see cref="NetworkObject"/> associated with this entity.
         /// Returns null if the entity is not alive SILENTLY.
@@ -32,25 +33,35 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         /// <returns>The NetworkObject if found and the entity is valid; otherwise, null.</returns>
         public static NetworkObject? GetNetworkObject(this IEntity entity)
         {
-            if(!entity.IsAlive()) return null;
-            if(!entity.Transform.TryGetComponent(out NetworkObject networkObject))
+            if (!entity.IsAlive()) return null;
+            if (!entity.Transform.TryGetComponent(out NetworkObject networkObject))
             {
                 Debug.LogError("Entity does not have a NetworkObject or it is not spawned.");
                 return null;
             }
+
             return networkObject;
         }
-        
+
         /// <summary>
-        /// Returns true if the local client is the owner of this actor's NetworkObject.
-        /// Returns false if the actor is not alive, does not have a NetworkObject, or if the local client is not the owner of the NetworkObject.
+        /// Returns true if the local client is the owner of this entity's NetworkObject.
+        /// Returns false if the entity is not alive, does not have a NetworkObject, or if the local client is not the owner of the NetworkObject.
         /// </summary>
-        public static bool IsOwned(this IActor actor)
+        public static bool IsOwned(this IEntity entity)
         {
-            var networkObject = actor.GetNetworkObject();
+            var networkObject = entity.GetNetworkObject();
             return networkObject != null && networkObject.IsOwner;
         }
-        
+
+        /// <summary>
+        /// Returns true if this entity's NetworkObject is spawned and running on the server.
+        /// </summary>
+        public static bool IsServer(this IEntity entity)
+        {
+            var networkObject = entity.GetNetworkObject();
+            return networkObject != null && (networkObject.NetworkManager?.IsServer ?? false);
+        }
+
         /// <summary>
         /// Resolves a <see cref="NetworkObjectReference"/> back into a local <see cref="IPawn"/> instance.
         /// Log error only if the NetworkObject exists but does not have a valid IPawn component or the pawn is not alive. Otherwise, return null silently.
@@ -63,12 +74,14 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 {
                     return pawn;
                 }
+
                 Debug.LogError("NetworkObject does not have a valid IPawn component or the pawn is not alive.");
                 return null;
             }
+
             return null;
         }
-        
+
         /// <summary>
         /// Resolves a <see cref="NetworkObjectReference"/> back into a local <see cref="IActor"/> instance.
         /// Log error only if the NetworkObject exists but does not have a valid IActor component or the actor is not alive. Otherwise, return null silently.
@@ -81,9 +94,11 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 {
                     return actor;
                 }
+
                 Debug.LogError("NetworkObject does not have a valid IActor component or the pawn is not alive.");
                 return null;
             }
+
             return null;
         }
     }

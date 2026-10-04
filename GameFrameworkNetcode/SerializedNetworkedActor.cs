@@ -1,4 +1,4 @@
-﻿using GameFramework.Saving;
+using GameFramework.Saving;
 using Newtonsoft.Json;
 using Unity.Netcode;
 using UnityEngine;
@@ -35,23 +35,26 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             }
         }
 
-        public void SendStateToClientFromServer(ulong clientId)
+        [ReplicatedMethod]
+        public void Server_SendStateToClient(ulong clientId)
         {
             if(!IsServer) return;
             string stateJson = Serialize();
             SendSerializedStateRpc(stateJson, RpcTarget.Single(clientId, RpcTargetUse.Temp));
         }
 
-        public void SendStateToAllClientsFromServer()
+        [ReplicatedMethod]
+        public void Server_SendStateToAllClients()
         {
             if(!IsServer) return;
             string stateJson = Serialize();
             SendSerializedStateRpc(stateJson);
         }
 
-        public void SendStateToServerFromClient()
+        [ReplicatedMethod]
+        public void Client_SendStateToServer()
         {
-            if(!IsClient) return;
+            if(!IsClient || !IsOwner) return;
             string stateJson = Serialize();
             SendSerializedStateRpc(stateJson, RpcTarget.Server);
         }
@@ -63,6 +66,12 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
             if (IsServer)
             {
                 ulong senderId = rpcParams.Receive.SenderClientId;
+                if (senderId != OwnerClientId && senderId != NetworkManager.ServerClientId)
+                {
+                    Debug.LogError($"[Security] Client {senderId} tried to update serialized state of {name} but does not own it.");
+                    return;
+                }
+
                 // Relay to all clients EXCEPT the sender
                 // We use Not(senderId) to prevent jitter/redundant updates on the originating client
                 SendSerializedStateRpc(serializedData, RpcTarget.Not(senderId, RpcTargetUse.Temp));

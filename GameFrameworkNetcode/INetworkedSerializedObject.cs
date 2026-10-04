@@ -1,4 +1,5 @@
-﻿using GameFramework.Dependencies;
+using GameFramework.Dependencies;
+using UnityGameFrameworkImplementations.Core.Netcode;
 
 namespace GameFramework.Saving
 {
@@ -11,18 +12,21 @@ namespace GameFramework.Saving
         /// After that, we should rely on smaller, incremental updates to keep clients in sync.
         /// </summary>
         /// <param name="clientId">The client identifier to send the state to.</param>
-        void SendStateToClientFromServer(ulong clientId);
+        [ReplicatedMethod]
+        void Server_SendStateToClient(ulong clientId);
         
         /// <summary>
         /// Serialize the current state and Broadcast the current state of the object to all clients.
         /// We expect it to send to all clients, including the one that initiated the change and the host.
         /// </summary>
-        void SendStateToAllClientsFromServer();
+        [ReplicatedMethod]
+        void Server_SendStateToAllClients();
         
         /// <summary>
         /// Should Serialize and Send the current state of the object to the server.
         /// Expected to be called by the owner client of the object when its state changes and needs to be replicated to other clients.
         /// </summary>
-        void SendStateToServerFromClient();
+        [ReplicatedMethod]
+        void Client_SendStateToServer();
     }
 }
