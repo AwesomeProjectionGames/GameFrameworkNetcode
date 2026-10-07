@@ -7,11 +7,12 @@
         "Unity.Netcode.Runtime",
         "GameFrameworkSpawnPoint",
         "Unity.Collections",
-        "GameFrameworkBaseImplementation"
+        "GameFrameworkBaseImplementation",
+        "MemoryPack.Unity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

@@ -1,8 +1,11 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
+using GameFramework.Dependencies;
+using MemoryPack;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;

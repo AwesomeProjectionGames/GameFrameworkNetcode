@@ -1,50 +1,31 @@
+#nullable enable
+
 using System;
-using Unity.Netcode;
+using MemoryPack;
 using UnityEngine;
 
 namespace UnityGameFrameworkImplementations.Core.Netcode
 {
     [Serializable]
-    public struct SerializableVector3 : INetworkSerializable
+    [MemoryPackable(SerializeLayout.Explicit)]
+    public partial struct PawnBaseState : IEquatable<PawnBaseState>
     {
-        public float x, y, z;
-        public SerializableVector3(Vector3 v) => (x, y, z) = (v.x, v.y, v.z);
-        public Vector3 ToVector3() => new Vector3(x, y, z);
+        [MemoryPackOrder(0)]
+        public Vector3 Position;
 
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        [MemoryPackOrder(1)]
+        public Quaternion Rotation;
+
+        public PawnBaseState(Vector3 position, Quaternion rotation)
         {
-            serializer.SerializeValue(ref x);
-            serializer.SerializeValue(ref y);
-            serializer.SerializeValue(ref z);
+            Position = position;
+            Rotation = rotation;
         }
-    }
 
-    [Serializable]
-    public struct SerializableQuaternion : INetworkSerializable
-    {
-        public float x, y, z, w;
-        public SerializableQuaternion(Quaternion q) => (x, y, z, w) = (q.x, q.y, q.z, q.w);
-        public Quaternion ToQuaternion() => new Quaternion(x, y, z, w);
-
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        {
-            serializer.SerializeValue(ref x);
-            serializer.SerializeValue(ref y);
-            serializer.SerializeValue(ref z);
-            serializer.SerializeValue(ref w);
-        }
-    }
-
-    [Serializable]
-    public record PawnBaseState : INetworkSerializable
-    {
-        public SerializableVector3 Position;
-        public SerializableQuaternion Rotation;
-
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        {
-            Position.NetworkSerialize(serializer);
-            Rotation.NetworkSerialize(serializer);
-        }
+        public bool Equals(PawnBaseState other) => Position.Equals(other.Position) && Rotation.Equals(other.Rotation);
+        public override bool Equals(object? obj) => obj is PawnBaseState other && Equals(other);
+        public override int GetHashCode() => unchecked((Position.GetHashCode() * 397) ^ Rotation.GetHashCode());
+        public static bool operator ==(PawnBaseState left, PawnBaseState right) => left.Equals(right);
+        public static bool operator !=(PawnBaseState left, PawnBaseState right) => !left.Equals(right);
     }
 }
