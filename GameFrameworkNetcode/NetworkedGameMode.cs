@@ -2,7 +2,6 @@
 
 using AwesomeProjectionCoreUtils.Extensions;
 using GameFramework;
-using GameFramework.Saving;
 using GameFramework.SpawnPoint;
 using Unity.Netcode;
 using UnityEngine;
@@ -75,7 +74,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         {
             if (!IsServer) return;
             Server_SpawnPlayer(clientId);
-            Server_SendActorStatesToNewClient(clientId);
         }
 
         /// <summary>
@@ -98,18 +96,6 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
                 }
             }
             return controller;
-        }
-
-        protected void Server_SendActorStatesToNewClient(ulong clientId)
-        {
-            //Send other actor states
-            foreach (var actor in CurrentGameState.Actors)
-            {
-                if (actor is INetworkedSerializedObject serializable)
-                {
-                    serializable.Server_SendStateToClient(clientId);
-                }
-            }
         }
 
         protected void HandleClientDisconnected(ulong clientId)
