@@ -195,14 +195,7 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         private void HandleOwnerChanged(NetworkObjectReference previousValue, NetworkObjectReference newValue)
         {
             IActor? lastOwner = _owner;
-            if (newValue.TryGet(out var newOwnerObj))
-            {
-                _owner = newOwnerObj.GetComponent<IActor>();
-            }
-            else
-            {
-                _owner = null;
-            }
+            _owner = newValue.GetActorFromNetworkObject();
 
             OnOwnerDidChange(lastOwner, _owner);
             if (IsServer)

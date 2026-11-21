@@ -68,17 +68,22 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         /// </summary>
         public static IPawn? GetPawnFromNetworkObject(this NetworkObjectReference networkObjectRef)
         {
-            if (networkObjectRef.TryGet(out NetworkObject networkObject))
-            {
-                if (networkObject.TryGetComponent(out IPawn pawn))
-                {
-                    return pawn;
-                }
+            return networkObjectRef.TryGet(out NetworkObject networkObject)
+                ? networkObject.GetPawnFromNetworkObject()
+                : null;
+        }
 
-                Debug.LogError("NetworkObject does not have a valid IPawn component or the pawn is not alive.");
-                return null;
+        /// <summary>
+        /// Resolves a <see cref="NetworkObject"/> into a local <see cref="IPawn"/> instance.
+        /// </summary>
+        public static IPawn? GetPawnFromNetworkObject(this NetworkObject networkObject)
+        {
+            if (networkObject.TryGetComponent(out IPawn pawn))
+            {
+                return pawn;
             }
 
+            Debug.LogError("NetworkObject does not have a valid IPawn component or the pawn is not alive.");
             return null;
         }
 
@@ -88,17 +93,47 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         /// </summary>
         public static IActor? GetActorFromNetworkObject(this NetworkObjectReference networkObjectRef)
         {
-            if (networkObjectRef.TryGet(out NetworkObject networkObject))
-            {
-                if (networkObject.TryGetComponent(out IActor actor))
-                {
-                    return actor;
-                }
+            return networkObjectRef.TryGet(out NetworkObject networkObject)
+                ? networkObject.GetActorFromNetworkObject()
+                : null;
+        }
 
-                Debug.LogError("NetworkObject does not have a valid IActor component or the pawn is not alive.");
-                return null;
+        /// <summary>
+        /// Resolves a <see cref="NetworkObject"/> into a local <see cref="IActor"/> instance.
+        /// </summary>
+        public static IActor? GetActorFromNetworkObject(this NetworkObject networkObject)
+        {
+            if (networkObject.TryGetComponent(out IActor actor))
+            {
+                return actor;
             }
 
+            Debug.LogError("NetworkObject does not have a valid IActor component or the actor is not alive.");
+            return null;
+        }
+
+        /// <summary>
+        /// Resolves a <see cref="NetworkObjectReference"/> back into a local <see cref="IEntity"/> instance.
+        /// Log error only if the NetworkObject exists but does not have a valid IEntity component or the entity is not alive. Otherwise, return null silently.
+        /// </summary>
+        public static IEntity? GetEntityFromNetworkObject(this NetworkObjectReference networkObjectRef)
+        {
+            return networkObjectRef.TryGet(out NetworkObject networkObject)
+                ? networkObject.GetEntityFromNetworkObject()
+                : null;
+        }
+
+        /// <summary>
+        /// Resolves a <see cref="NetworkObject"/> into a local <see cref="IEntity"/> instance.
+        /// </summary>
+        public static IEntity? GetEntityFromNetworkObject(this NetworkObject networkObject)
+        {
+            if (networkObject.TryGetComponent(out IEntity entity))
+            {
+                return entity;
+            }
+
+            Debug.LogError("NetworkObject does not have a valid IEntity component or the entity is not alive.");
             return null;
         }
     }
