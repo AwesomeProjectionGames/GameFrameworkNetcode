@@ -42,6 +42,22 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         }
 
         /// <summary>
+        /// Formats the deterministic scene UUID from a <see cref="NetworkObject"/>'s <see cref="NetworkObject.PrefabIdHash"/>.
+        /// Single source of truth shared between runtime spawning and editor tooling.
+        /// </summary>
+        public static bool TryGetSceneUuid(NetworkObject? networkObject, out string uuid)
+        {
+            if (networkObject != null && networkObject.PrefabIdHash != 0)
+            {
+                uuid = networkObject.PrefabIdHash.ToString("x8");
+                return true;
+            }
+
+            uuid = string.Empty;
+            return false;
+        }
+
+        /// <summary>
         /// Generates a unique UUID for this actor.
         /// Scene-placed actors reuse their deterministic <see cref="NetworkObject.PrefabIdHash"/> (GlobalObjectIdHash)
         /// so their UUID stays stable across sessions; dynamically spawned actors get a fresh <see cref="Guid"/>.
@@ -49,9 +65,9 @@ namespace UnityGameFrameworkImplementations.Core.Netcode
         /// <returns>A unique UUID string.</returns>
         protected virtual string Server_GetUniqueUuid()
         {
-            if (NetworkObject != null && NetworkObject.IsSceneObject == true && NetworkObject.PrefabIdHash != 0)
+            if (NetworkObject != null && NetworkObject.IsSceneObject == true && TryGetSceneUuid(NetworkObject, out string sceneUuid))
             {
-                return NetworkObject.PrefabIdHash.ToString("x8");
+                return sceneUuid;
             }
 
             return Guid.NewGuid().ToString();
